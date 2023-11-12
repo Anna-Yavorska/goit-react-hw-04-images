@@ -15,16 +15,19 @@ export class App extends Component {
     query: '',
     error: false,
     quantity: 0,
+    randomIndex: 0,
   };
 
   async componentDidUpdate(prevProps, prevState) {
-    const { query, page } = this.state;
-    if (prevState.query !== query || prevState.page !== page) {
+    const { query, page, randomIndex } = this.state;
+    if (
+      prevState.query !== query ||
+      prevState.page !== page ||
+      prevState.randomIndex !== randomIndex
+    ) {
       try {
         this.setState({ isLoading: true, error: false });
-        const input = query.split('/').pop();
-
-        const data = await loadImages(input, page);
+        const data = await loadImages(query, page);
         this.setState(prevState => ({
           images: [...prevState.images, ...data.hits],
           quantity: data.totalHits,
@@ -42,9 +45,10 @@ export class App extends Component {
 
   search = newQuery => {
     this.setState({
-      query: `${Date.now()}/${newQuery}`,
+      query: newQuery,
       page: 1,
       images: [],
+      randomIndex: Math.random(),
     });
   };
 
