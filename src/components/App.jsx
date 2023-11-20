@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from './Button/Button';
 import { ImageGallery } from './ImageGallery/ImageGallery';
 import { Searchbar } from './Searchbar/Searchbar';
@@ -7,72 +7,56 @@ import { GlobalStyle } from './GlobalStyle';
 import { Loader } from './Loader/Loader';
 import toast, { Toaster } from 'react-hot-toast';
 
-export class App extends Component {
-  state = {
-    images: [],
-    page: 1,
-    isLoading: false,
-    query: '',
-    error: false,
-    quantity: 0,
-    randomIndex: 0,
-  };
+export const App = () => {
+  const [images, setImages] = useState([]);
+  const [page, setPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [query, setQuery] = useState('');
+  const [error, setError] = useState(false);
+  const [quantity, setQuantity] = useState(0);
+  const [randomIndex, setRandomIndex] = useState(0);
 
-  async componentDidUpdate(prevProps, prevState) {
-    const { query, page, randomIndex } = this.state;
-    if (
-      prevState.query !== query ||
-      prevState.page !== page ||
-      prevState.randomIndex !== randomIndex
-    ) {
+  useEffect(() => {
+    const getImages = async () => {
+      if (query === '') {
+        return;
+      }
       try {
-        this.setState({ isLoading: true, error: false });
+        setIsLoading(true);
+        setError(false);
         const data = await loadImages(query, page);
-        this.setState(prevState => ({
-          images: [...prevState.images, ...data.hits],
-          quantity: data.totalHits,
-        }));
+        setImages(prevImages => [...prevImages, ...data.hits]);
+        setQuantity(data.totalHits);
       } catch (error) {
-        this.setState({ error: true });
+        setError(true);
         toast.error('Please, try to reload the page');
       } finally {
-        this.setState({
-          isLoading: false,
-        });
+        setIsLoading(false);
       }
-    }
-  }
+    };
+    
+    getImages();
+  }, [page, query, randomIndex]);
 
-  search = newQuery => {
-    this.setState({
-      query: newQuery,
-      page: 1,
-      images: [],
-      randomIndex: Math.random(),
-    });
+  const search = newQuery => {
+    setQuery(newQuery);
+    setPage(1);
+    setImages([]);
+    setRandomIndex(Math.random());
   };
 
-  handleLoadMore = () => {
-    this.setState(prevState => {
-      return { page: prevState.page + 1 };
-    });
-  };
+  const findMore = () => quantity - page * 12;
 
-  findMore = () => {
-    return this.state.quantity - this.state.page * 12;
-  };
+  const handleLoadMore = () => setPage(prevPage => prevPage + 1);
 
-  render() {
-    const { isLoading, images } = this.state;
-    return (
-      <div>
-        <Searchbar onSubmit={this.search} />
-        {isLoading && <Loader />}
-        {images.length > 0 && <ImageGallery images={images} />}
-        {this.findMore() > 0 && <Button onClick={this.handleLoadMore} />}
-        <GlobalStyle />
-        <Toaster />
-      </div>
-    );
-  }
-}
+  return (
+    <div>
+      <Searchbar onSubmit={search} />
+      {isLoading && <Loader />}
+      {images.length > 0 && !error && <ImageGallery images={images} />}
+      {findMore() > 0 && <Button onClick={handleLoadMore} />}
+      <GlobalStyle />
+      <Toaster />
+    </div>
+  );
+};
